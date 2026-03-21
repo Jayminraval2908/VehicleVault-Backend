@@ -1,0 +1,18 @@
+const router = require("express").Router();
+const InquiryController = require("../controllers/InquiryController");
+const authMiddleWare = require("../middleware/AuthMiddleware");
+const roleMiddleWare = require("../middleware/RoleMiddleware");
+
+router.post("/send", authMiddleWare, roleMiddleWare("buyer"), InquiryController.sendInquiry);
+
+router.use(authMiddleWare);
+
+router.get("/", roleMiddleWare("admin"), InquiryController.getAllInquiries);
+router.get("/buyer/:buyerId", roleMiddleWare("buyer", "admin"), InquiryController.getBuyerInquiries);
+router.get("/vehicle/:vehicleId", roleMiddleWare("seller", "admin"), InquiryController.getVehicleInquiries);
+router.get("/:id", roleMiddleWare("buyer", "seller", "admin"), InquiryController.getInquiryById);
+
+router.put("/:id", roleMiddleWare("buyer", "admin"), InquiryController.updateInquiry);
+router.delete("/:id", roleMiddleWare("buyer", "admin"), InquiryController.deleteInquiry);
+
+module.exports = router;
