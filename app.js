@@ -8,14 +8,17 @@ app.use(express.json())
 const cors = require("cors")
 app.use(cors({origin:"http://localhost:5173"}))
 
+const adminRoutes = require("./src/routes/AdminRoute");
+app.use("/admin",adminRoutes)
+
 const userRoutes = require("./src/routes/UserRoutes")
 app.use("/user",userRoutes);
 
 const vehicleRoutes =require("./src/routes/VehicleRoutes")
-app.use("/vehicle",vehicleRoutes);
+app.use("/vehicles",vehicleRoutes);
 
 const inquiryRoutes = require("./src/routes/InquiryRoutes")
-app.use("/inquiry",inquiryRoutes)
+app.use("/inquiries",inquiryRoutes)
 
 const inspectionReportRoutes = require("./src/routes/InspectionReportRoutes")
 app.use("/inspection",inspectionReportRoutes)
@@ -33,7 +36,7 @@ const testDriveRoutes = require("./src/routes/TestDriveRoutes");
 app.use("/testdrives",testDriveRoutes);
 
 const offerRoutes = require("./src/routes/OfferRoutes");
-app.use("/offers",offerRoutes);
+app.use("/offer",offerRoutes);
 
 const DBConnection = require("./src/utills/DBConnection")
 

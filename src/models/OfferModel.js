@@ -14,7 +14,7 @@ const offerSchema = new mongoose.Schema({
     required: true
   },
 
-  offered_price: {
+  offered_amount: {
     type: Number,
     required: true
   },
@@ -25,8 +25,8 @@ const offerSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ["Pending", "Accepted", "Rejected"],
-    default: "Pending"
+    enum: ["pending", "accepted", "rejected"],
+    default: "pending"
   }
 
 }, { timestamps: true });

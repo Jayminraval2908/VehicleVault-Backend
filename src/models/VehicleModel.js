@@ -29,13 +29,24 @@ const vehicleSchema = new mongoose.Schema({
 
     fuel_type:{
         type:String,
-        enum:["Petrol","Diesel","Electric","Hybrid"]
+        enum:["Petrol","Diesel","Electric","Hybrid","CNG"]
     },
 
     transmission:{
         type:String,
         enum:["Manual","Automatic"],
         required:true
+    },
+
+    images: {
+        type: [String],
+        default:[],
+        required: false // Or true if you want to force an image
+    },
+
+    coverImage: {
+    type: String,
+    default: ""
     },
 
     price:{
@@ -55,11 +66,13 @@ const vehicleSchema = new mongoose.Schema({
         type:String
     },
 
+  
+
 
     status:{
         type:String,
-        enum:["Available","Sold"],
-        default:"Available"
+        enum:["Draft","Pending", "Approved", "Rejected", "Sold"],
+        default:"Pending"
     }
 
 },{timestamps:true});

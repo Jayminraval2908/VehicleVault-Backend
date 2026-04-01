@@ -39,6 +39,24 @@ const getAllInquiries = async (req, res) => {
   }
 };
 
+// GET MY INQUIRIES (for logged-in buyer)
+const getMyInquiries = async (req, res) => {
+  try {
+    const inquiries = await InquiryModel.find({ buyer_id: req.user._id })
+      .populate("vehicle_id"); // optional: add "buyer_id" if needed
+
+    res.status(200).json({
+      message: "My inquiries fetched successfully",
+      data: inquiries,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching my inquiries",
+      error: error.message,
+    });
+  }
+};
+
 // GET INQUIRY BY ID
 const getInquiryById = async (req, res) => {
   try {
@@ -148,6 +166,7 @@ module.exports = {
   getInquiryById,
   getBuyerInquiries,
   getVehicleInquiries,
+  getMyInquiries,
   updateInquiry,
   deleteInquiry,
 };

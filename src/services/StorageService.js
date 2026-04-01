@@ -1,13 +1,16 @@
 const imagekit = require("../utills/Imagekitutils");
 
 const uploadFile = async (file, vehicleId) => {
-  if (!vehicleId) throw new Error("vehicleId is required for folder path");
+  // 🚩 Ensure we have a fallback so we don't get 'undefined' folders
+  const folderPath = vehicleId 
+    ? `vehicle_vault/active_listings/${vehicleId}` 
+    : `vehicle_vault/temp_uploads`;
 
   try {
     const response = await imagekit.upload({
       file: file.buffer.toString("base64"),
       fileName: `vault_${Date.now()}_${file.originalname}`,
-      folder: `vehicle_vault/vehicles/${vehicleId}` 
+      folder: folderPath // 🚩 Use the consolidated path
     });
 
     return response;

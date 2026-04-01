@@ -5,7 +5,7 @@ const addInspectionReport = async (req, res) => {
   try {
     const report = await InspectionModel.create({
       ...req.body,
-      seller_id: req.user._id, // Still tracking who created it
+      seller_id: req.user._id || req.user.id // Still tracking who created it
     });
 
     res.status(201).json({
@@ -46,7 +46,10 @@ const getReportById = async (req, res) => {
       return res.status(404).json({ message: "Inspection report not found" });
     }
 
-    res.status(200).json(report);
+    res.status(200).json({
+    success: true,
+    data: report // Always wrap in 'data'
+});
   } catch (error) {
     res.status(500).json({
       message: "Error fetching report",
@@ -58,7 +61,7 @@ const getReportById = async (req, res) => {
 // GET REPORT BY VEHICLE
 const getVehicleReport = async (req, res) => {
   try {
-    const report = await InspectionModel.findOne({ vehicle_id: req.params.vehicleId }).populate("vehicle_id");
+    const report = await InspectionModel.find({ vehicle_id: req.params.vehicleId }).populate("vehicle_id").sort({ createdAt: -1 });;
 
     if (!report) {
       return res.status(404).json({

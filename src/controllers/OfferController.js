@@ -3,9 +3,19 @@
   // CREATE OFFER
   const createOffer = async (req, res) => {
     try {
+      console.log("--- DEBUG START ---");
+    console.log("Body:", req.body);
+    console.log("User from Token:", req.user); // 🚩 If this is undefined, that's your 500 error!
+    console.log("--- DEBUG END ---");
+      const { vehicle_id, offer_amount, message } = req.body;
+      const buyer_id = req.user._id || req.user.id;
+
       const offer = await OfferModel.create({
-        ...req.body,
-        buyer_id: req.user._id, 
+        vehicle_id,
+        buyer_id,
+        offered_amount: offer_amount,
+        message: message || "New offer submitted via The Vault.",
+        status:"pending"
       });
 
       res.status(201).json({ 
@@ -13,6 +23,7 @@
         data: offer 
       });
     } catch (error) {
+      console.error("Create Offer Error:", error);
       res.status(500).json({ 
         message: "Error creating offer", 
         error: error.message 
@@ -41,7 +52,7 @@
   // GET BUYER OFFERS
   const getBuyerOffers = async (req, res) => {
     try {
-      const offers = await OfferModel.find({ buyer_id: req.user._id }) // or we write req.params.buyerId
+      const offers = await OfferModel.find({ buyer_id: req.user.id }) // or we write req.params.buyerId
         .populate("vehicle_id");
 
       res.status(200).json({ 

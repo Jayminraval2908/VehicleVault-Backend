@@ -5,7 +5,7 @@ const roleMiddleWare = require("../middleware/RoleMiddleware");
 
 router.use(authMiddleWare);
 
-router.post("/create", roleMiddleWare("buyer", "admin"), offerController.createOffer);
+router.post("/create", roleMiddleWare("buyer","seller"), offerController.createOffer);
 router.get("/vehicle/:vehicleId", roleMiddleWare("seller", "admin"), offerController.getVehicleOffers);
 router.get("/my-offers", roleMiddleWare("buyer", "admin"), offerController.getBuyerOffers);
 router.get("/:id", roleMiddleWare("buyer", "seller", "admin"), offerController.getOfferById);

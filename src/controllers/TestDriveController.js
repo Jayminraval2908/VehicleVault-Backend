@@ -5,7 +5,7 @@ const bookTestDrive = async (req, res) => {
   try {
     const booking = await TestDriveModel.create({
       ...req.body,
-      buyer_id: req.user._id, // Remains to associate the record with the user
+      buyer_id: req.user._id || req.user.id, // Remains to associate the record with the user
     });
 
     res.status(201).json({ 
@@ -65,9 +65,10 @@ const getBookingById = async (req, res) => {
 // GET BUYER BOOKINGS
 const getBuyerBookings = async (req, res) => {
   try {
-    const bookings = await TestDriveModel.find({ buyer_id: req.user._id })
+    const userId = req.user._id || req.user.id;
+    const bookings = await TestDriveModel.find({ buyer_id: userId })
       .populate("vehicle_id")
-      .sort({preffered_date: 1});
+      .sort({preferred_date: 1});
 
     res.status(200).json({ 
       message: "Bookings fetched", 
@@ -83,29 +84,52 @@ const getBuyerBookings = async (req, res) => {
 };
 
 // UPDATE TEST DRIVE STATUS
+// const updateTestDriveStatus = async (req, res) => {
+//  try {
+//     const { vehicle_id, preferred_date, preferred_time, location } = req.body;
+
+//     // 🚩 Check 1: Is req.user.id coming from AuthMiddleware?
+//     const buyer_id = req.user.id || req.user._id; 
+
+//     if (!buyer_id) {
+//       return res.status(401).json({ message: "User not authenticated" });
+//     }
+
+//     const newBooking = new TestDrive({
+//       vehicle_id,
+//       buyer_id,
+//       preferred_date,
+//       preferred_time,
+//       location,
+//       status: "pending" // Default status
+//     });
+
+//     await newBooking.save();
+//     res.status(201).json({ success: true, data: newBooking });
+//   } catch (error) {
+//     // 🚩 This is what triggers the 500 error in your console
+//     console.error("Booking Error:", error); 
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
 const updateTestDriveStatus = async (req, res) => {
   try {
-    const { status } = req.body;
-    const updated = await TestDriveModel.findByIdAndUpdate(
-      req.params.id, 
-      {status},
+    const { status } = req.body; // e.g., { "status": "Confirmed" }
+    
+    const updatedBooking = await TestDriveModel.findByIdAndUpdate(
+      req.params.id,
+      { status },
       { new: true }
-    );
+    ).populate("vehicle_id");
 
-    if (!updated) {
+    if (!updatedBooking) {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    res.status(200).json({ 
-      message: "Booking updated successfully", 
-      data: updated 
-    });
-
+    res.status(200).json({ success: true, data: updatedBooking });
   } catch (error) {
-    res.status(500).json({ 
-      message: "Error updating booking", 
-      error: error.message 
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

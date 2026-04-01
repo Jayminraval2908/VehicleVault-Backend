@@ -2,8 +2,9 @@ const userModel = require("../models/UserModel");
 const bcrypt = require("bcrypt");
 const mailSend = require("../utills/MailUtil");
 const jwt = require("jsonwebtoken");
-const axios = require("axios"); // Run: npm install axios
+const axios = require("axios"); 
 const { OAuth2Client } = require('google-auth-library');
+const crypto = require("crypto");
 
 const client = new OAuth2Client(process.env.VITE_GOOGLE_CLIENT_ID);
 
@@ -203,10 +204,121 @@ const deleteUser = async (req, res) => {
   }
 };
 
+
+
+
+
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({
+      message: "Email is not provided",
+    });
+  }
+
+  const user = await userModel.findOne({ email });
+
+  if (!user) {
+    return res.status(400).json({
+      message: "User not found...",
+    });
+  }
+
+  // ✅ Generate reset token
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  // ✅ Hash token (store hashed version in DB)
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  user.resetPasswordToken = hashedToken;
+  user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+  await user.save();
+
+  const url = `http://localhost:5173/resetpassword/${resetToken}`;
+
+  const mailText = `
+    <html>
+      <p>Click below to reset your password:</p>
+      <a href="${url}">RESET PASSWORD</a>
+    </html>
+  `;
+
+  await mailSend(user.email, "Reset Password Link", mailText);
+
+  res.status(200).json({
+    message: "Reset link has been sent to your mail",
+  });
+};
+
+
+
+
+const resetPassword = async (req, res) => {
+  const { newPassword } = req.body;
+  const { token } = req.params;
+
+  if (!newPassword) {
+    return res.status(400).json({
+      message: "New password is required",
+    });
+  }
+
+  try {
+    // ✅ Hash token from URL
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    // ✅ Find user with valid token
+    const user = await userModel.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid or expired token",
+      });
+    }
+
+    // ✅ Hash new password using bcrypt
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    user.password = hashedPassword;
+
+    // ✅ Clear reset fields
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Password reset successful",
+    });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      message: "Server error",
+      err: err.message,
+    });
+  }
+};
+
+
 module.exports = {
     registerUser,
     loginUser,
     googleSignin,
     getAllUsers,
-    deleteUser
+    deleteUser,
+    forgotPassword,
+    resetPassword
 };
