@@ -8,6 +8,12 @@ const testDriveSchema = new mongoose.Schema({
     required: true
   },
 
+  seller_id:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"users",
+    required: true
+  },
+
   vehicle_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "vehicles",

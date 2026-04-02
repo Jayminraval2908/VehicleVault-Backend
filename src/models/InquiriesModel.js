@@ -1,13 +1,19 @@
 const mongoose = require("mongoose");
 
 const inquiriesSchema= new mongoose.Schema({
-    buyer_id:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"users",
+   buyer_id: { // ✅ ADD THIS
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "users",
+    required: true
+  },
 
-    },
-
-    vehicle_id:{
+  seller_id: { // ✅ ADD THIS
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "users",
+    required: true
+  },
+  
+  vehicle_id:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"vehicles"
     },
@@ -19,6 +25,7 @@ const inquiriesSchema= new mongoose.Schema({
 
     reply:{
         type:String,
+        default:""
     },
 
     status:{

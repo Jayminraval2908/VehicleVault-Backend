@@ -1,4 +1,5 @@
   const OfferModel = require("../models/OfferModel");
+  const VehicleModel = require("../models/VehicleModel")
 
   // CREATE OFFER
   const createOffer = async (req, res) => {
@@ -10,12 +11,19 @@
       const { vehicle_id, offer_amount, message } = req.body;
       const buyer_id = req.user._id || req.user.id;
 
+       const vehicle = await VehicleModel.findById(vehicle_id);
+    if (!vehicle) {
+      return res.status(404).json({ message: "Vehicle not found" });
+    }
+
+
       const offer = await OfferModel.create({
         vehicle_id,
         buyer_id,
+        seller_id: vehicle.seller_id,
         offered_amount: offer_amount,
         message: message || "New offer submitted via The Vault.",
-        status:"pending"
+        status:"Pending"
       });
 
       res.status(201).json({ 
@@ -67,6 +75,28 @@
     }
   };
 
+
+  const getSellerOffers = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+
+    const offers = await OfferModel.find({ seller_id: userId })
+      .populate("buyer_id")
+      .populate("vehicle_id");
+
+    res.status(200).json({
+      message: "Seller offers fetched",
+      data: offers
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching seller offers",
+      error: error.message
+    });
+  }
+};
+
   // GET VEHICLE OFFERS
   const getVehicleOffers = async (req, res) => {
     try {
@@ -87,28 +117,66 @@
   };
 
   // UPDATE OFFER STATUS
-  const updateOfferStatus = async (req, res) => {
-    try {
-      const { status, seller_response } = req.body;
-      const updated = await OfferModel.findByIdAndUpdate(
-        req.params.id, 
-        { status, seller_response },
-        { new: true }
-      );
+  // const updateOfferStatus = async (req, res) => {
+  //   try {
+  //     const { status, seller_response } = req.body;
+  //     const updated = await OfferModel.findByIdAndUpdate(
+  //       req.params.id, 
+  //       { status, seller_response },
+  //       { new: true }
+  //     );
 
-      if (!updated) return res.status(404).json({ message: "Offer not found" });
+  //     if (!updated) return res.status(404).json({ message: "Offer not found" });
 
-      res.status(200).json({ 
-        message: "Offer updated successfully", 
-        data: updated 
-      });
-    } catch (error) {
-      res.status(500).json({ 
-        message: "Error updating offer", 
-        error: error.message 
+  //     res.status(200).json({ 
+  //       message: "Offer updated successfully", 
+  //       data: updated 
+  //     });
+  //   } catch (error) {
+  //     res.status(500).json({ 
+  //       message: "Error updating offer", 
+  //       error: error.message 
+  //     });
+  //   }
+  // };
+
+
+  // UPDATE OFFER STATUS
+const updateOfferStatus = async (req, res) => {
+  try {
+    const { status, seller_response } = req.body;
+
+    const offer = await OfferModel.findById(req.params.id);
+
+    if (!offer) {
+      return res.status(404).json({ message: "Offer not found" });
+    }
+
+    // ✅ SECURITY: ONLY SELLER CAN UPDATE
+    const userId = req.user._id || req.user.id;
+    if (offer.seller_id.toString() !== userId.toString()) {
+      return res.status(403).json({
+        message: "Not authorized to update this offer"
       });
     }
-  };
+
+    offer.status = status;
+    offer.seller_response = seller_response;
+
+    await offer.save();
+
+    res.status(200).json({ 
+      message: "Offer updated successfully", 
+      data: offer 
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      message: "Error updating offer", 
+      error: error.message 
+    });
+  }
+};
 
   // DELETE OFFER
   const deleteOffer = async (req, res) => {
@@ -133,6 +201,7 @@
     createOffer,
     getOfferById,
     getBuyerOffers,
+    getSellerOffers,
     getVehicleOffers,
     updateOfferStatus,
     deleteOffer,

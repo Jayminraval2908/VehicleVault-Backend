@@ -1,21 +1,56 @@
 const InquiryModel = require("../models/InquiriesModel");
+const VehicleModel = require("../models/VehicleModel");
 
 // SEND INQUIRY
 const sendInquiry = async (req, res) => {
   try {
+    const { vehicle_id, message } = req.body;
+    const buyerId = req.user._id || req.user.id;
+
+    console.log("REQ BODY:", req.body);
+
+    // ✅ VALIDATION
+    if (!vehicle_id || !message) {
+      return res.status(400).json({
+        message: "vehicle_id and message are required"
+      });
+    }
+
+    // ✅ CHECK VALID OBJECT ID
+    const mongoose = require("mongoose");
+    if (!mongoose.Types.ObjectId.isValid(vehicle_id)) {
+      return res.status(400).json({
+        message: "Invalid vehicle ID"
+      });
+    }
+
+    // ✅ FIND VEHICLE
+    const vehicle = await VehicleModel.findById(vehicle_id);
+
+    if (!vehicle) {
+      return res.status(404).json({
+        message: "Vehicle not found"
+      });
+    }
+
+    // ✅ CREATE INQUIRY
     const inquiry = await InquiryModel.create({
-      ...req.body,
-      buyer_id: req.user._id, // Still using logged-in user ID for the record
+      vehicle_id,
+      message,
+      buyer_id: buyerId,
+      seller_id: vehicle.seller_id
     });
 
     res.status(201).json({
       message: "Inquiry sent successfully",
-      data: inquiry,
+      data: inquiry
     });
+
   } catch (error) {
+    console.error("🔥 SEND INQUIRY ERROR:", error); // VERY IMPORTANT
     res.status(500).json({
       message: "Error sending inquiry",
-      error: error.message,
+      error: error.message
     });
   }
 };
@@ -42,7 +77,8 @@ const getAllInquiries = async (req, res) => {
 // GET MY INQUIRIES (for logged-in buyer)
 const getMyInquiries = async (req, res) => {
   try {
-    const inquiries = await InquiryModel.find({ buyer_id: req.user._id })
+    const userId = req.user._id || req.user.id;
+    const inquiries = await InquiryModel.find({ buyer_id: userId })
       .populate("vehicle_id"); // optional: add "buyer_id" if needed
 
     res.status(200).json({
@@ -80,7 +116,8 @@ const getInquiryById = async (req, res) => {
 // GET BUYER INQUIRIES
 const getBuyerInquiries = async (req, res) => {
   try {
-    const inquiries = await InquiryModel.find({ buyer_id: req.user._id }) // OR we set req.params.buyerId
+    const userId = req.user._id || req.user.id;
+    const inquiries = await InquiryModel.find({ buyer_id: userId }) // OR we set req.params.buyerId
       .populate("vehicle_id");
 
     res.status(200).json({
@@ -110,6 +147,28 @@ const getVehicleInquiries = async (req, res) => {
     res.status(500).json({
       message: "Error fetching vehicle inquiries",
       error: error.message,
+    });
+  }
+};
+
+
+//GET SELLER INQUIRY
+const getSellerInquiries = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const inquiries = await InquiryModel.find({
+      seller_id: userId
+    }).populate("vehicle_id buyer_id");
+
+    res.status(200).json({
+      message: "Seller inquiries fetched",
+      data: inquiries
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching inquiries",
+      error: error.message
     });
   }
 };
@@ -160,6 +219,50 @@ const deleteInquiry = async (req, res) => {
   }
 };
 
+
+// REPLY TO INQUIRY (SELLER)
+const replyToInquiry = async (req, res) => {
+  try {
+    const { message } = req.body;
+
+    const inquiry = await InquiryModel.findById(req.params.id);
+
+    if (!inquiry) {
+      return res.status(404).json({
+        message: "Inquiry not found"
+      });
+    }
+
+    // ✅ CHECK: only seller can reply
+    const userId = req.user._id || req.user.id;
+
+    if (inquiry.seller_id.toString() !== userId.toString()) {
+      return res.status(403).json({
+        message: "Not authorized to reply to this inquiry"
+      });
+    }
+
+    // ✅ UPDATE reply
+    inquiry.reply = message;
+
+    // ✅ OPTIONAL: change status
+    inquiry.status = "Accepted";
+
+    await inquiry.save();
+
+    res.status(200).json({
+      message: "Reply sent successfully",
+      data: inquiry
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Error replying to inquiry",
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   sendInquiry,
   getAllInquiries,
@@ -167,6 +270,8 @@ module.exports = {
   getBuyerInquiries,
   getVehicleInquiries,
   getMyInquiries,
+  getSellerInquiries,
   updateInquiry,
   deleteInquiry,
+  replyToInquiry
 };

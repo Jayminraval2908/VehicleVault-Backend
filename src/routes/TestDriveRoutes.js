@@ -9,6 +9,7 @@ router.post("/book", roleMiddleWare("buyer", "admin"), testDriveController.bookT
 
 router.get("/", roleMiddleWare("admin"), testDriveController.getAllBookings);
 router.get("/my-bookings", roleMiddleWare("buyer"), testDriveController.getBuyerBookings);
+router.get("/seller", roleMiddleWare("seller"), testDriveController.getSellerBookings);
 router.get("/details/:id", roleMiddleWare("buyer", "seller", "admin"), testDriveController.getBookingById);
 
 router.put("/status/:id", roleMiddleWare("seller", "admin"), testDriveController.updateTestDriveStatus);

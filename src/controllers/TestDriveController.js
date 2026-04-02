@@ -1,11 +1,27 @@
 const TestDriveModel = require("../models/TestDriveModel");
+const VehicleModel = require("../models/VehicleModel"); // ✅ ADDED
 
 // BOOK TEST DRIVE
 const bookTestDrive = async (req, res) => {
   try {
+    const { vehicle_id, preferred_date, preferred_time, location } = req.body;
+    const buyer_id = req.user._id || req.user.id;
+
+    // ✅ FIND VEHICLE TO GET seller_id
+    const vehicle = await VehicleModel.findById(vehicle_id);
+
+    if (!vehicle) {
+      return res.status(404).json({ message: "Vehicle not found" });
+    }
+
     const booking = await TestDriveModel.create({
-      ...req.body,
-      buyer_id: req.user._id || req.user.id, // Remains to associate the record with the user
+      vehicle_id,
+      preferred_date,
+      preferred_time,
+      location,
+      buyer_id,
+      seller_id: vehicle.seller_id, // ✅ ADDED
+      status: "pending"
     });
 
     res.status(201).json({ 
@@ -20,7 +36,6 @@ const bookTestDrive = async (req, res) => {
     });
   }
 };
-
 // GET ALL BOOKINGS
 const getAllBookings = async (req, res) => {
   try {
@@ -83,6 +98,35 @@ const getBuyerBookings = async (req, res) => {
   }
 };
 
+// GET SELLER BOOKINGS ✅ NEW
+
+const getSellerBookings = async (req, res) => {
+  try {
+    const sellerId = req.user._id || req.user.id;
+
+    const bookings = await TestDriveModel.find()
+      .populate({
+        path: "vehicle_id",
+        match: { seller_id: sellerId } // ✅ ONLY SELLER VEHICLES
+      })
+      .populate("buyer_id");
+
+    // ✅ REMOVE NULL VEHICLES (important)
+    const filtered = bookings.filter(b => b.vehicle_id !== null);
+
+    res.status(200).json({
+      message: "Seller bookings fetched",
+      data: filtered
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching seller bookings",
+      error: error.message
+    });
+  }
+};
+
 // UPDATE TEST DRIVE STATUS
 // const updateTestDriveStatus = async (req, res) => {
 //  try {
@@ -115,8 +159,26 @@ const getBuyerBookings = async (req, res) => {
 
 const updateTestDriveStatus = async (req, res) => {
   try {
-    const { status } = req.body; // e.g., { "status": "Confirmed" }
-    
+    let { status } = req.body;
+
+    // ✅ VALIDATION (VERY IMPORTANT)
+    const allowedStatus = ["Pending", "Approved", "Completed", "Cancelled"];
+
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
+    }
+
+    // normalize input
+    status = status.toLowerCase();
+
+    if (status === "approved") status = "Approved";
+    else if (status === "cancelled") status = "Cancelled";
+    else if (status === "completed") status = "Completed";
+    else if (status === "pending") status = "Pending";
+    else {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
     const updatedBooking = await TestDriveModel.findByIdAndUpdate(
       req.params.id,
       { status },
@@ -127,9 +189,17 @@ const updateTestDriveStatus = async (req, res) => {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    res.status(200).json({ success: true, data: updatedBooking });
+    res.status(200).json({
+      message: "Status updated successfully",
+      data: updatedBooking,
+    });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("🔥 STATUS UPDATE ERROR:", error); // VERY IMPORTANT
+    res.status(500).json({
+      message: "Error updating status",
+      error: error.message,
+    });
   }
 };
 
@@ -160,6 +230,7 @@ module.exports = {
   getAllBookings,
   getBookingById,
   getBuyerBookings,
+  getSellerBookings,
   updateTestDriveStatus,
   deleteBooking,
 };

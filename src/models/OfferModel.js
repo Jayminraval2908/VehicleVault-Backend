@@ -7,6 +7,13 @@ const offerSchema = new mongoose.Schema({
     ref: "users",
     required: true
   },
+  
+  seller_id:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref:"users",
+    required: true
+
+  },
 
   vehicle_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -25,8 +32,8 @@ const offerSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ["pending", "accepted", "rejected"],
-    default: "pending"
+    enum: ["Pending", "Accepted", "Rejected"],
+    default: "Pending"
   }
 
 }, { timestamps: true });
