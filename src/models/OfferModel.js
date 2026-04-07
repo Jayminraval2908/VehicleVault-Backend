@@ -34,7 +34,26 @@ const offerSchema = new mongoose.Schema({
     type: String,
     enum: ["Pending", "Accepted", "Rejected"],
     default: "Pending"
+  },
+  
+  dealStatus: {
+    type: String,
+    enum: ["negotiating", "offer_accepted", "deal_locked", "completed", "cancelled"],
+    default: "negotiating"
+  },
+
+  // ✅ NEW FIELD: Buyer confirmation
+  buyerConfirmed: {
+    type: Boolean,
+    default: false
+  },
+
+  // ✅ NEW FIELD: Seller confirmation
+  sellerConfirmed: {
+    type: Boolean,
+    default: false
   }
+
 
 }, { timestamps: true });
 

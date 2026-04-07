@@ -1,61 +1,121 @@
 const VehicleModel = require("../models/VehicleModel");
+const VehicleImageModel = require("../models/VehicleImagesModel");
 const mongoose = require("mongoose");
 const { uploadFile } = require("../services/StorageService");
 
+// const addVehicle = async (req, res) => {
+
+//   try {
+//     console.log("USER:", req.user);
+//     console.log("FILES:", req.files);
+
+//     // 1️⃣ Create vehicle without images first
+//     const vehicle = await VehicleModel.create({
+//       ...req.body,
+//       seller_id: req.user._id || req.user.id,
+//       status: "Draft",
+//       images: [], // ensure it's an array
+//     });
+
+//     const imageUrls = [];
+
+//     // 2️⃣ Upload each file to ImageKit
+//     if (req.files && req.files.length > 0) {
+//       for (const file of req.files) {
+//         const uploadResponse = await uploadFile(file, vehicle._id);
+
+//         // Check what your uploadFile returns
+//         // It should return something like: { url: "https://ik.imagekit.io/..." }
+//         console.log("UPLOAD RESPONSE:", uploadResponse);
+
+//         if (uploadResponse && uploadResponse.url) {
+//           imageUrls.push(uploadResponse.url);
+//         }
+//       }
+
+//       // 3️⃣ Save URLs in MongoDB
+//       // vehicle.images = imageUrls;
+//       // await vehicle.save();
+
+//       vehicle.images = imageUrls;
+
+// // 🔥 AUTO SET COVER IMAGE
+// if (imageUrls.length > 0) {
+//   vehicle.coverImage = imageUrls[0];
+// }
+
+// await vehicle.save();
+//     }
+
+//     res.status(201).json({
+//       message: "Vehicle added successfully",
+//       data: vehicle,
+//     });
+
+//   } catch (error) {
+//     console.error("ERROR:", error);
+//     res.status(500).json({
+//       message: "Error adding vehicle",
+//       error: error.message,
+//     });
+//   }
+// };
+
+
+
+
+
 const addVehicle = async (req, res) => {
   try {
-    console.log("USER:", req.user);
-    console.log("FILES:", req.files);
-
-    // 1️⃣ Create vehicle without images first
+    // 1️⃣ Create the vehicle first
     const vehicle = await VehicleModel.create({
       ...req.body,
       seller_id: req.user._id || req.user.id,
       status: "Draft",
-      images: [], // ensure it's an array
     });
 
     const imageUrls = [];
+    const vehicleIdString = vehicle._id.toString(); // 🚩 Fix the 'undefined' path issue
+    const currentUserId = req.user._id || req.user.id;
 
-    // 2️⃣ Upload each file to ImageKit
+    // 2️⃣ Upload and Create separate Image Documents
     if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const uploadResponse = await uploadFile(file, vehicle._id);
-
-        // Check what your uploadFile returns
-        // It should return something like: { url: "https://ik.imagekit.io/..." }
-        console.log("UPLOAD RESPONSE:", uploadResponse);
+      // Use for...of to ensure sequential uploads and DB entries
+      for (const [index, file] of req.files.entries()) {
+        
+        // Upload to ImageKit
+        const uploadResponse = await uploadFile(file, vehicleIdString);
 
         if (uploadResponse && uploadResponse.url) {
+          // 3️⃣ Save into VehicleImageModel (This ensures multiple entries are created)
+          await VehicleImageModel.create({
+            vehicle_id: vehicle._id,
+            seller_id: currentUserId, // 🚩 Required for your deleteImage security check
+            image_url: uploadResponse.url,
+            file_id: uploadResponse.fileId,
+            image_type: index === 0 ? "cover" : "gallery",
+            is_primary: index === 0
+          });
+
           imageUrls.push(uploadResponse.url);
         }
       }
 
-      // 3️⃣ Save URLs in MongoDB
-      // vehicle.images = imageUrls;
-      // await vehicle.save();
-
+      // 4️⃣ Sync back to the main Vehicle document
       vehicle.images = imageUrls;
-
-// 🔥 AUTO SET COVER IMAGE
-if (imageUrls.length > 0) {
-  vehicle.coverImage = imageUrls[0];
-}
-
-await vehicle.save();
+      vehicle.coverImage = imageUrls[0] || "";
+      await vehicle.save();
     }
 
-    res.status(201).json({
-      message: "Vehicle added successfully",
-      data: vehicle,
+    res.status(201).json({ 
+      success: true, 
+      message: "Vehicle and all images saved to Vault",
+      data: vehicle 
     });
 
   } catch (error) {
-    console.error("ERROR:", error);
-    res.status(500).json({
-      message: "Error adding vehicle",
-      error: error.message,
-    });
+    console.error("🔥 ADD VEHICLE ERROR:", error);
+    res.status(500).json({ message: "Error adding vehicle", error: error.message });
   }
 };
 
@@ -324,10 +384,22 @@ const getPendingVehicles = async (req, res) => {
   }
 };
 
+
+const getMyVehicles = async (req, res) => {
+  try {
+    const sellerId = req.user.id || req.user._id; 
+    const myCars = await VehicleModel.find({ seller_id: sellerId });
+    res.status(200).json({ data: myCars });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching garage" });
+  }
+};
+
 module.exports = {
   addVehicle,
   getAllVehicles,
   getVehicleById,
+  getMyVehicles,
   getSellerVehicles,
   updateVehicle,
   deleteVehicle,

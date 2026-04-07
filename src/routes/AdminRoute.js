@@ -12,6 +12,8 @@ router.use(authMiddleWare, roleMiddleWare("admin"));
 // 📊 DASHBOARD
 // ==========================================
 router.get("/dashboard", adminController.getDashboardStats);
+// Add this route near your other admin routes
+router.get("/notifications", authMiddleWare, adminController.getSystemNotifications);
 
 
 // ==========================================

@@ -14,7 +14,7 @@ router.get("/vehicle/:vehicleId", roleMiddleWare("seller", "admin"), InquiryCont
 router.get("/:id", roleMiddleWare("buyer", "seller", "admin"), InquiryController.getInquiryById);
 
 router.put("/:id", roleMiddleWare("buyer", "admin"), InquiryController.updateInquiry);
-router.put("/reply/:id", roleMiddleWare("seller"), InquiryController.replyToInquiry);
+router.put("/reply/:id", roleMiddleWare("seller", "buyer"), InquiryController.replyToInquiry);
 
 router.delete("/:id", roleMiddleWare("buyer", "admin"), InquiryController.deleteInquiry);
 

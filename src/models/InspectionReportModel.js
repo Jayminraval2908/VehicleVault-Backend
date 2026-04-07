@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const inspectionSchema = new mongoose.Schema({
     vehicle_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "vehicles", // Ensure this matches your Vehicle model name
+        ref: "vehicles", 
         required: true
     },
     seller_id: { 
@@ -11,7 +11,8 @@ const inspectionSchema = new mongoose.Schema({
         ref: "users", 
         required: true
     },
-    // 🚩 UPDATED TO MATCH FRONTEND AddReport.jsx
+    
+    // --- CORE GRADES ---
     engineStatus: {
         type: String,
         default: "Excellent"
@@ -28,17 +29,39 @@ const inspectionSchema = new mongoose.Schema({
         type: String,
         default: "A"
     },
-    summary: {
-        type: String
+
+    // --- 🚩 NEW PROFESSIONAL FIELDS (To match your Frontend) ---
+    suspension: {
+        type: String,
+        default: "Excellent"
     },
-    // Keep these for legacy or additional detail if needed
-    tyre_condition: { type: String },
-    accident_history: { type: String },
-    
-    createdAt: {
-        type: Date,
-        default: Date.now
+    brakeCondition: {
+        type: String,
+        default: "Excellent"
+    },
+    tireLife: { 
+        type: String,
+        default: "Brand New (90-100%)"
+    },
+    acPerformance: {
+        type: String,
+        default: "Chilling"
+    },
+    accidentHistory: { 
+        type: String,
+        default: "None"
+    },
+    serviceHistory: { 
+        type: String, 
+        default: "Full Service History"
+    },
+
+    // --- OBSERVATIONS ---
+    summary: {
+        type: String,
+        required: true
     }
-}, { timestamps: true }); // Automatically adds createdAt and updatedAt
+
+}, { timestamps: true }); // Automatically manages createdAt and updatedAt
 
 module.exports = mongoose.model("inspection_reports", inspectionSchema);

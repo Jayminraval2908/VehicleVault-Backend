@@ -253,3 +253,23 @@ exports.deleteInquiry = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+
+
+// New lightweight function for sidebar notifications
+exports.getSystemNotifications = async (req, res) => {
+  try {
+    // Only count the vehicles where status is 'pending'
+    const pendingCount = await Vehicle.countDocuments({ status: "pending" });
+    
+    // Optional: You can also count new unread inquiries here
+    // const inquiryCount = await Inquiry.countDocuments({ status: "new" });
+
+    res.status(200).json({
+      success: true,
+      pendingVehicles: pendingCount
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching notification counts" });
+  }
+};

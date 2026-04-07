@@ -1,44 +1,92 @@
 const InquiryModel = require("../models/InquiriesModel");
 const VehicleModel = require("../models/VehicleModel");
+const mongoose = require("mongoose")
 
 // SEND INQUIRY
+// const sendInquiry = async (req, res) => {
+//   try {
+//     const { vehicle_id, message } = req.body;
+//     const buyerId = req.user._id || req.user.id;
+
+//     console.log("REQ BODY:", req.body);
+
+//     // ✅ VALIDATION
+//     if (!vehicle_id || !message) {
+//       return res.status(400).json({
+//         message: "vehicle_id and message are required"
+//       });
+//     }
+
+//     // ✅ CHECK VALID OBJECT ID
+//     const mongoose = require("mongoose");
+//     if (!mongoose.Types.ObjectId.isValid(vehicle_id)) {
+//       return res.status(400).json({
+//         message: "Invalid vehicle ID"
+//       });
+//     }
+
+//     // ✅ FIND VEHICLE
+//     const vehicle = await VehicleModel.findById(vehicle_id);
+
+//     if (!vehicle) {
+//       return res.status(404).json({
+//         message: "Vehicle not found"
+//       });
+//     }
+
+//     // ✅ CREATE INQUIRY
+//     const inquiry = await InquiryModel.create({
+//       vehicle_id,
+//       message,
+//       buyer_id: buyerId,
+//       seller_id: vehicle.seller_id
+//     });
+
+//     res.status(201).json({
+//       message: "Inquiry sent successfully",
+//       data: inquiry
+//     });
+
+//   } catch (error) {
+//     console.error("🔥 SEND INQUIRY ERROR:", error); // VERY IMPORTANT
+//     res.status(500).json({
+//       message: "Error sending inquiry",
+//       error: error.message
+//     });
+//   }
+// };
+
 const sendInquiry = async (req, res) => {
   try {
     const { vehicle_id, message } = req.body;
     const buyerId = req.user._id || req.user.id;
 
-    console.log("REQ BODY:", req.body);
-
-    // ✅ VALIDATION
     if (!vehicle_id || !message) {
-      return res.status(400).json({
-        message: "vehicle_id and message are required"
-      });
+      return res.status(400).json({ message: "vehicle_id and message are required" });
     }
 
-    // ✅ CHECK VALID OBJECT ID
-    const mongoose = require("mongoose");
     if (!mongoose.Types.ObjectId.isValid(vehicle_id)) {
-      return res.status(400).json({
-        message: "Invalid vehicle ID"
-      });
+      return res.status(400).json({ message: "Invalid vehicle ID" });
     }
 
-    // ✅ FIND VEHICLE
     const vehicle = await VehicleModel.findById(vehicle_id);
 
     if (!vehicle) {
-      return res.status(404).json({
-        message: "Vehicle not found"
-      });
+      return res.status(404).json({ message: "Vehicle not found" });
+
+
     }
 
-    // ✅ CREATE INQUIRY
+    console.log("Vehicle found. Seller ID is:", vehicle.seller_id);
+
+    // 🚩 FIX: Extract seller_id properly (handles both populated and unpopulated cases)
+    const targetSellerId = vehicle.seller_id._id || vehicle.seller_id;
+
     const inquiry = await InquiryModel.create({
       vehicle_id,
       message,
       buyer_id: buyerId,
-      seller_id: vehicle.seller_id
+      seller_id: targetSellerId // 🚩 This ensures the seller actually receives it
     });
 
     res.status(201).json({
@@ -47,7 +95,7 @@ const sendInquiry = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("🔥 SEND INQUIRY ERROR:", error); // VERY IMPORTANT
+    console.error("🔥 SEND INQUIRY ERROR:", error);
     res.status(500).json({
       message: "Error sending inquiry",
       error: error.message
@@ -153,12 +201,38 @@ const getVehicleInquiries = async (req, res) => {
 
 
 //GET SELLER INQUIRY
+// const getSellerInquiries = async (req, res) => {
+//   try {
+//     const userId = req.user._id || req.user.id;
+//     const inquiries = await InquiryModel.find({
+//       seller_id: userId
+//     }).populate("vehicle_id buyer_id");
+
+//     res.status(200).json({
+//       message: "Seller inquiries fetched",
+//       data: inquiries
+//     });
+
+//   } catch (error) {
+//     res.status(500).json({
+//       message: "Error fetching inquiries",
+//       error: error.message
+//     });
+//   }
+// };
+
+
 const getSellerInquiries = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
+    
+    // 🚩 Added .sort({ createdAt: -1 }) so newest messages appear first
     const inquiries = await InquiryModel.find({
       seller_id: userId
-    }).populate("vehicle_id buyer_id");
+    })
+    .populate("vehicle_id")
+    .populate("buyer_id")
+    .sort({ createdAt: -1 }); 
 
     res.status(200).json({
       message: "Seller inquiries fetched",
@@ -221,31 +295,69 @@ const deleteInquiry = async (req, res) => {
 
 
 // REPLY TO INQUIRY (SELLER)
+// const replyToInquiry = async (req, res) => {
+//   try {
+//     const { message } = req.body;
+
+//     const inquiry = await InquiryModel.findById(req.params.id);
+
+//     if (!inquiry) {
+//       return res.status(404).json({
+//         message: "Inquiry not found"
+//       });
+//     }
+
+//     // ✅ CHECK: only seller can reply
+//     const userId = req.user._id || req.user.id;
+
+//     if (inquiry.seller_id.toString() !== userId.toString()) {
+//       return res.status(403).json({
+//         message: "Not authorized to reply to this inquiry"
+//       });
+//     }
+
+//     // ✅ UPDATE reply
+//     inquiry.reply = message;
+
+//     // ✅ OPTIONAL: change status
+//     inquiry.status = "Accepted";
+
+//     await inquiry.save();
+
+//     res.status(200).json({
+//       message: "Reply sent successfully",
+//       data: inquiry
+//     });
+
+//   } catch (error) {
+//     res.status(500).json({
+//       message: "Error replying to inquiry",
+//       error: error.message
+//     });
+//   }
+// };
+
+
+// ✅ REPLY TO INQUIRY (Updated Comparison Logic)
 const replyToInquiry = async (req, res) => {
   try {
     const { message } = req.body;
-
     const inquiry = await InquiryModel.findById(req.params.id);
 
     if (!inquiry) {
-      return res.status(404).json({
-        message: "Inquiry not found"
-      });
+      return res.status(404).json({ message: "Inquiry not found" });
     }
 
-    // ✅ CHECK: only seller can reply
     const userId = req.user._id || req.user.id;
 
+    // 🚩 FIX: Use .toString() for safe ObjectId comparison
     if (inquiry.seller_id.toString() !== userId.toString()) {
       return res.status(403).json({
         message: "Not authorized to reply to this inquiry"
       });
     }
 
-    // ✅ UPDATE reply
     inquiry.reply = message;
-
-    // ✅ OPTIONAL: change status
     inquiry.status = "Accepted";
 
     await inquiry.save();

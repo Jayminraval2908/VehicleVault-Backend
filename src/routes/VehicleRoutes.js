@@ -1,85 +1,92 @@
-const router = require("express").Router();
-const vehicleController = require("../controllers/VehicleController");
-const authMiddleWare = require("../middleware/AuthMiddleware");
-const roleMiddleWare = require("../middleware/RoleMiddleware");
-const upload = require("../middleware/UploadMiddleware");
+  const router = require("express").Router();
+  const vehicleController = require("../controllers/VehicleController");
+  const authMiddleWare = require("../middleware/AuthMiddleware");
+  const roleMiddleWare = require("../middleware/RoleMiddleware");
+  const upload = require("../middleware/UploadMiddleware");
 
-// ==========================
-// 🌐 PUBLIC ROUTES
-// ==========================
-router.get("/", vehicleController.getAllVehicles);
-router.get("/details/:id", vehicleController.getVehicleById);
+  // ==========================
+  // 🌐 PUBLIC ROUTES
+  // ==========================
+  router.get("/", vehicleController.getAllVehicles);
+  router.get("/details/:id", vehicleController.getVehicleById);
 
-// ==========================
-// 👤 SELLER ROUTES
-// ==========================
-router.get(
-  "/my-inventory",
-  authMiddleWare,
-  roleMiddleWare("seller"),
-  vehicleController.getSellerVehicles
-);
+  // ==========================
+  // 👤 SELLER ROUTES
+  // ==========================
+  router.get(
+    "/my-inventory",
+    authMiddleWare,
+    roleMiddleWare("seller"),
+    vehicleController.getSellerVehicles
+  );
 
-router.post(
-  "/add",
-  authMiddleWare,
-  upload.array("images", 10),
-  roleMiddleWare("seller", "admin"),
-  vehicleController.addVehicle
-);
+  router.get(
+    "/my-garage",
+    authMiddleWare,
+    roleMiddleWare("seller"),
+    vehicleController.getMyVehicles
+  )
 
-// 🚀 NEW: Publish vehicle (draft → pending)
-router.patch(
-  "/publish/:id",
-  authMiddleWare,
-  roleMiddleWare("seller"),
-  vehicleController.publishVehicle
-);
+  router.post(
+    "/add",
+    authMiddleWare,
+    upload.array("images", 10),
+    roleMiddleWare("seller", "admin"),
+    vehicleController.addVehicle
+  );
 
-// ==========================
-// 🛠 COMMON (Seller/Admin)
-// ==========================
-router.put(
-  "/:id",
-  authMiddleWare,
-  upload.array("images", 10),
-  roleMiddleWare("seller", "admin"),
-  vehicleController.updateVehicle
-);
+  // 🚀 NEW: Publish vehicle (draft → pending)
+  router.patch(
+    "/publish/:id",
+    authMiddleWare,
+    roleMiddleWare("seller"),
+    vehicleController.publishVehicle
+  );
 
-router.delete(
-  "/:id",
-  authMiddleWare,
-  roleMiddleWare("seller", "admin"),
-  vehicleController.deleteVehicle
-);
+  // ==========================
+  // 🛠 COMMON (Seller/Admin)
+  // ==========================
+  router.put(
+    "/:id",
+    authMiddleWare,
+    upload.array("images", 10),
+    roleMiddleWare("seller", "admin"),
+    vehicleController.updateVehicle
+  );
 
-// ==========================
-// 👨‍💼 ADMIN ROUTES
-// ==========================
+  router.delete(
+    "/:id",
+    authMiddleWare,
+    roleMiddleWare("seller", "admin"),
+    vehicleController.deleteVehicle
+  );
 
-// 🔥 Get all pending vehicles
-router.get(
-  "/pending",
-  authMiddleWare,
-  roleMiddleWare("admin"),
-  vehicleController.getPendingVehicles
-);
+  // ==========================
+  // 👨‍💼 ADMIN ROUTES
+  // ==========================
 
-// ✅ Approve vehicle
-router.patch(
-  "/approve/:id",
-  authMiddleWare,
-  roleMiddleWare("admin"),
-  vehicleController.approveVehicle
-);
+  // 🔥 Get all pending vehicles
+  router.get(
+    "/pending",
+    authMiddleWare,
+    roleMiddleWare("admin"),
+    vehicleController.getPendingVehicles
+  );
 
-// ❌ Reject vehicle  
-router.patch(
-  "/reject/:id",
-  authMiddleWare,
-  roleMiddleWare("admin"),
-  vehicleController.rejectVehicle
-);
+  // ✅ Approve vehicle
+  router.patch(
+    "/approve/:id",
+    authMiddleWare,
+    roleMiddleWare("admin"),
+    vehicleController.approveVehicle
+  );
 
-module.exports = router;
+  // ❌ Reject vehicle  
+  router.patch(
+    "/reject/:id",
+    authMiddleWare,
+    roleMiddleWare("admin"),
+    vehicleController.rejectVehicle
+  );
+
+  module.exports = router;

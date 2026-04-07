@@ -13,7 +13,7 @@ const client = new OAuth2Client(process.env.VITE_GOOGLE_CLIENT_ID);
 const googleSignin = async(req,res)=>{
     try {
 
-        const {token , role} = req.body;
+        const {token , role, contact} = req.body;
 
         if (!token) {
             return res.status(400).json({
@@ -31,11 +31,22 @@ const googleSignin = async(req,res)=>{
 
         let foundUser = await userModel.findOne({ email });
 
+
+
+        // if (!foundUser) {
+        //     if (!role) {
+        //         return res.status(400).json({
+        //             message:"Role is required for first-time Google signup"
+        //         })
+        //     }
+
+
         if (!foundUser) {
-            if (!role) {
+            // NEW USER LOGIC
+            if (!role || !contact) {
                 return res.status(400).json({
-                    message:"Role is required for first-time Google signup"
-                })
+                    message:"Role and Contact are required for first-time Google signup"
+                });
             }
 
             foundUser = await userModel.create({
@@ -43,6 +54,7 @@ const googleSignin = async(req,res)=>{
                 lastName:family_name,
                 email:email,
                 role:role.toLowerCase(),
+                phone:contact,
                 isFirstLogin:true,
                 password:await bcrypt.hash(googleId+Math.random(),10)
             })
