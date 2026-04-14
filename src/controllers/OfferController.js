@@ -22,7 +22,7 @@
         buyer_id,
         seller_id: vehicle.seller_id,
         offered_amount: offer_amount,
-        message: message || "New offer submitted via The Vault.",
+        seller_response: message || "",
         status:"Pending"
       });
 
@@ -38,25 +38,6 @@
       });
     }
   };
-
-  // GET OFFER BY ID
-  // const getOfferById = async (req, res) => {
-  //   try {
-  //     const offer = await OfferModel.findById(req.params.id)
-  //       .populate("buyer_id")
-  //       .populate("vehicle_id");
-
-  //     if (!offer) return res.status(404).json({ message: "Offer not found" });
-
-  //     res.status(200).json(offer);
-  //   } catch (error) {
-  //     res.status(500).json({ 
-  //       message: "Error fetching offer", 
-  //       error: error.message 
-  //     });
-  //   }
-  // };
-
 
   const getOfferById = async (req, res) => {
   try {
@@ -165,47 +146,7 @@
     }
   };
 
- 
-
-//   // UPDATE OFFER STATUS
-// const updateOfferStatus = async (req, res) => {
-//   try {
-//     const { status, seller_response } = req.body;
-
-//     const offer = await OfferModel.findById(req.params.id);
-
-//     if (!offer) {
-//       return res.status(404).json({ message: "Offer not found" });
-//     }
-
-//     // ✅ SECURITY: ONLY SELLER CAN UPDATE
-//     const userId = req.user._id || req.user.id;
-//     if (offer.seller_id.toString() !== userId.toString()) {
-//       return res.status(403).json({
-//         message: "Not authorized to update this offer"
-//       });
-//     }
-
-//     offer.status = status;
-//     offer.seller_response = seller_response;
-
-//     await offer.save();
-
-//     res.status(200).json({ 
-//       message: "Offer updated successfully", 
-//       data: offer 
-//     });
-
-//   } catch (error) {
-//     res.status(500).json({ 
-//       message: "Error updating offer", 
-//       error: error.message 
-//     });
-//   }
-// };
-
-
-const updateOfferStatus = async (req, res) => {
+ const updateOfferStatus = async (req, res) => {
   try {
     const { status, seller_response } = req.body;
 
@@ -314,17 +255,23 @@ const updateOfferStatus = async (req, res) => {
         message: "Deal can only be confirmed after offer is accepted"
       });
     }
+    // 🟦 BUYER CONFIRM
+if (offer.buyer_id.toString() === userId.toString()) {
+  offer.buyerConfirmed = true;
+}
 
-    // ✅ SET CONFIRMATION
-    if (offer.buyer_id.toString() === userId.toString()) {
-      console.log("✅ Buyer clicked confirm");
-      offer.buyerConfirmed = true;
-    }
+// 🟥 SELLER CONFIRM
+if (offer.seller_id.toString() === userId.toString()) {
 
-    if (offer.seller_id.toString() === userId.toString()) {
-      console.log("✅ Seller clicked confirm");
-      offer.sellerConfirmed = true;
-    }
+  // ❌ BLOCK SELLER FIRST CLICK
+  if (!offer.buyerConfirmed) {
+    return res.status(400).json({
+      message: "Please buyer confirm deal first"
+    });
+  }
+
+  offer.sellerConfirmed = true;
+}
 
     console.log("🔄 Updated Buyer Confirmed:", offer.buyerConfirmed);
     console.log("🔄 Updated Seller Confirmed:", offer.sellerConfirmed);
@@ -354,6 +301,7 @@ const updateOfferStatus = async (req, res) => {
     });
   }
 };
+
 
   module.exports = {
     createOffer,

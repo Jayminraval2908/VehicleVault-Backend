@@ -166,7 +166,9 @@ const getBuyerInquiries = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
     const inquiries = await InquiryModel.find({ buyer_id: userId }) // OR we set req.params.buyerId
-      .populate("vehicle_id");
+      .populate("vehicle_id")
+      .populate("seller_id", "name email phone") // 🚩 Added seller contact details
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       message: "Buyer inquiries fetched",
@@ -338,10 +340,50 @@ const deleteInquiry = async (req, res) => {
 // };
 
 
-// ✅ REPLY TO INQUIRY (Updated Comparison Logic)
+// // ✅ REPLY TO INQUIRY (Updated Comparison Logic)
+// const replyToInquiry = async (req, res) => {
+//   try {
+//     const { message } = req.body;
+//     const inquiry = await InquiryModel.findById(req.params.id);
+
+//     if (!inquiry) {
+//       return res.status(404).json({ message: "Inquiry not found" });
+//     }
+
+//     const userId = req.user._id || req.user.id;
+
+//     // 🚩 FIX: Use .toString() for safe ObjectId comparison
+//     if (inquiry.seller_id.toString() !== userId.toString()) {
+//       return res.status(403).json({
+//         message: "Not authorized to reply to this inquiry"
+//       });
+//     }
+
+//     inquiry.reply = message;
+//     inquiry.status = "Accepted";
+
+//     await inquiry.save();
+
+//     res.status(200).json({
+//       message: "Reply sent successfully",
+//       data: inquiry
+//     });
+
+//   } catch (error) {
+//     res.status(500).json({
+//       message: "Error replying to inquiry",
+//       error: error.message
+//     });
+//   }
+// };
+
+
+
+// ✅ UPDATED: REPLY TO INQUIRY (No manual text needed)
 const replyToInquiry = async (req, res) => {
   try {
-    const { message } = req.body;
+    // 🚩 We now look for 'status' in the body instead of 'message'
+    const { status } = req.body; 
     const inquiry = await InquiryModel.findById(req.params.id);
 
     if (!inquiry) {
@@ -350,26 +392,30 @@ const replyToInquiry = async (req, res) => {
 
     const userId = req.user._id || req.user.id;
 
-    // 🚩 FIX: Use .toString() for safe ObjectId comparison
     if (inquiry.seller_id.toString() !== userId.toString()) {
       return res.status(403).json({
-        message: "Not authorized to reply to this inquiry"
+        message: "Not authorized to respond to this inquiry"
       });
     }
 
-    inquiry.reply = message;
-    inquiry.status = "Accepted";
+    // 🚩 AUTO-GENERATE reply based on status
+    const autoReply = status === "Accepted" 
+      ? "Yes, I accept your offer. Please see my contact details below." 
+      : "I'm sorry, I cannot accept this offer at this time.";
+
+    inquiry.reply = autoReply;
+    inquiry.status = status; // "Accepted" or "Rejected"
 
     await inquiry.save();
 
     res.status(200).json({
-      message: "Reply sent successfully",
+      message: `Inquiry ${status} successfully`,
       data: inquiry
     });
 
   } catch (error) {
     res.status(500).json({
-      message: "Error replying to inquiry",
+      message: "Error processing response",
       error: error.message
     });
   }

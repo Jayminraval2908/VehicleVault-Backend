@@ -3,68 +3,6 @@ const VehicleImageModel = require("../models/VehicleImagesModel");
 const mongoose = require("mongoose");
 const { uploadFile } = require("../services/StorageService");
 
-// const addVehicle = async (req, res) => {
-
-//   try {
-//     console.log("USER:", req.user);
-//     console.log("FILES:", req.files);
-
-//     // 1️⃣ Create vehicle without images first
-//     const vehicle = await VehicleModel.create({
-//       ...req.body,
-//       seller_id: req.user._id || req.user.id,
-//       status: "Draft",
-//       images: [], // ensure it's an array
-//     });
-
-//     const imageUrls = [];
-
-//     // 2️⃣ Upload each file to ImageKit
-//     if (req.files && req.files.length > 0) {
-//       for (const file of req.files) {
-//         const uploadResponse = await uploadFile(file, vehicle._id);
-
-//         // Check what your uploadFile returns
-//         // It should return something like: { url: "https://ik.imagekit.io/..." }
-//         console.log("UPLOAD RESPONSE:", uploadResponse);
-
-//         if (uploadResponse && uploadResponse.url) {
-//           imageUrls.push(uploadResponse.url);
-//         }
-//       }
-
-//       // 3️⃣ Save URLs in MongoDB
-//       // vehicle.images = imageUrls;
-//       // await vehicle.save();
-
-//       vehicle.images = imageUrls;
-
-// // 🔥 AUTO SET COVER IMAGE
-// if (imageUrls.length > 0) {
-//   vehicle.coverImage = imageUrls[0];
-// }
-
-// await vehicle.save();
-//     }
-
-//     res.status(201).json({
-//       message: "Vehicle added successfully",
-//       data: vehicle,
-//     });
-
-//   } catch (error) {
-//     console.error("ERROR:", error);
-//     res.status(500).json({
-//       message: "Error adding vehicle",
-//       error: error.message,
-//     });
-//   }
-// };
-
-
-
-
-
 const addVehicle = async (req, res) => {
   try {
     // 1️⃣ Create the vehicle first
@@ -122,8 +60,26 @@ const addVehicle = async (req, res) => {
 // GET ALL VEHICLES
 const getAllVehicles = async (req, res) => {
   try {
-    const vehicles = await VehicleModel.find({ status: "Approved" }).populate("seller_id");
-    console.log("🔥 Vehicles from DB:", vehicles); // ADD THIS
+    const { search = "" } = req.query;
+
+    // 🔍 Build search filter
+    let filter = {
+      status: "Approved"
+    };
+
+    if (search) {
+      filter.$or = [
+        { make: { $regex: search, $options: "i" } },
+        { model: { $regex: search, $options: "i" } },
+        { fuel_type: { $regex: search, $options: "i" } },
+        { transmission: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    const vehicles = await VehicleModel
+      .find(filter)
+      .populate("seller_id");
+
     res.status(200).json({
       message: "Vehicles fetched",
       data: vehicles

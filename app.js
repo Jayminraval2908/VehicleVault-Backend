@@ -38,6 +38,10 @@ app.use("/testdrives",testDriveRoutes);
 const offerRoutes = require("./src/routes/OfferRoutes");
 app.use("/offer",offerRoutes);
 
+const contactRoutes = require("./src/routes/ContactRoute");
+app.use("/contact",contactRoutes);
+
+
 // const messageRoutes = require("./src/routes/MessageRoutes");
 // app.use("/messages", messageRoutes);
     

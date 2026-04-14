@@ -48,7 +48,9 @@ const offerSchema = new mongoose.Schema({
     default: false
   },
 
-  // ✅ NEW FIELD: Seller confirmation
+
+  
+// ✅ NEW FIELD: Seller confirmation
   sellerConfirmed: {
     type: Boolean,
     default: false

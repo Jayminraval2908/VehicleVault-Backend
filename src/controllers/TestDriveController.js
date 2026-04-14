@@ -1,38 +1,56 @@
+const mongoose = require("mongoose");
 const TestDriveModel = require("../models/TestDriveModel");
-const VehicleModel = require("../models/VehicleModel"); // ✅ ADDED
+const VehicleModel = require("../models/VehicleModel");
 
 // BOOK TEST DRIVE
 const bookTestDrive = async (req, res) => {
   try {
     const { vehicle_id, preferred_date, preferred_time, location } = req.body;
+
     const buyer_id = req.user._id || req.user.id;
 
-    // ✅ FIND VEHICLE TO GET seller_id
+    // ✅ VALIDATION
+    if (!vehicle_id || !preferred_date || !preferred_time) {
+      return res.status(400).json({
+        message: "Vehicle, date and time are required",
+      });
+    }
+
+    // ✅ VALID OBJECT ID CHECK
+    if (!mongoose.Types.ObjectId.isValid(vehicle_id)) {
+      return res.status(400).json({
+        message: "Invalid vehicle ID",
+      });
+    }
+
+    // ✅ FIND VEHICLE
     const vehicle = await VehicleModel.findById(vehicle_id);
 
     if (!vehicle) {
       return res.status(404).json({ message: "Vehicle not found" });
     }
 
+    // ✅ CREATE BOOKING (NO STATUS — schema will handle default)
     const booking = await TestDriveModel.create({
       vehicle_id,
       preferred_date,
       preferred_time,
       location,
       buyer_id,
-      seller_id: vehicle.seller_id, // ✅ ADDED
-      status: "pending"
+      seller_id: vehicle.seller_id,
     });
 
-    res.status(201).json({ 
-      message: "Test drive booked successfully", 
-      data: booking 
+    res.status(201).json({
+      message: "Test drive booked successfully",
+      data: booking,
     });
 
   } catch (error) {
-    res.status(500).json({ 
-      message: "Error booking test drive", 
-      error: error.message 
+    console.error("🔥 BOOKING ERROR:", error);
+
+    res.status(500).json({
+      message: "Error booking test drive",
+      error: error.message,
     });
   }
 };
@@ -98,64 +116,27 @@ const getBuyerBookings = async (req, res) => {
   }
 };
 
-// GET SELLER BOOKINGS ✅ NEW
-
 const getSellerBookings = async (req, res) => {
   try {
     const sellerId = req.user._id || req.user.id;
 
-    const bookings = await TestDriveModel.find()
-      .populate({
-        path: "vehicle_id",
-        match: { seller_id: sellerId } // ✅ ONLY SELLER VEHICLES
-      })
-      .populate("buyer_id");
-
-    // ✅ REMOVE NULL VEHICLES (important)
-    const filtered = bookings.filter(b => b.vehicle_id !== null);
+    const bookings = await TestDriveModel.find({ seller_id: sellerId })
+      .populate("vehicle_id")
+      .populate("buyer_id")
+      .sort({ preferred_date: 1 });
 
     res.status(200).json({
       message: "Seller bookings fetched",
-      data: filtered
+      data: bookings,
     });
 
   } catch (error) {
     res.status(500).json({
       message: "Error fetching seller bookings",
-      error: error.message
+      error: error.message,
     });
   }
-};
-
-// UPDATE TEST DRIVE STATUS
-// const updateTestDriveStatus = async (req, res) => {
-//  try {
-//     const { vehicle_id, preferred_date, preferred_time, location } = req.body;
-
-//     // 🚩 Check 1: Is req.user.id coming from AuthMiddleware?
-//     const buyer_id = req.user.id || req.user._id; 
-
-//     if (!buyer_id) {
-//       return res.status(401).json({ message: "User not authenticated" });
-//     }
-
-//     const newBooking = new TestDrive({
-//       vehicle_id,
-//       buyer_id,
-//       preferred_date,
-//       preferred_time,
-//       location,
-//       status: "pending" // Default status
-//     });
-
-//     await newBooking.save();
-//     res.status(201).json({ success: true, data: newBooking });
-//   } catch (error) {
-//     // 🚩 This is what triggers the 500 error in your console
-//     console.error("Booking Error:", error); 
-//     res.status(500).json({ success: false, message: error.message });
-//   }
-// };
+};  
 
 const updateTestDriveStatus = async (req, res) => {
   try {
