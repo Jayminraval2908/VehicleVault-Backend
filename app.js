@@ -6,7 +6,13 @@ const app = express();
 app.use(express.json())
 
 const cors = require("cors")
-app.use(cors({origin:"http://localhost:5173"}))
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://vehicle-vault-frontend.vercel.app"
+  ],
+  credentials: true
+}));
 
 const adminRoutes = require("./src/routes/AdminRoute");
 app.use("/admin",adminRoutes)
@@ -42,9 +48,6 @@ const contactRoutes = require("./src/routes/ContactRoute");
 app.use("/contact",contactRoutes);
 
 
-// const messageRoutes = require("./src/routes/MessageRoutes");
-// app.use("/messages", messageRoutes);
-    
 const DBConnection = require("./src/utills/DBConnection")
 
 DBConnection()
