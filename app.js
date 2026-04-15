@@ -10,7 +10,7 @@ const cors = require("cors")
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://vehicle-vault-frontend.vercel.app"
+    "https://vehicle-vault-frontend-lake.vercel.app/  "
   ],
   credentials: true
 }));
