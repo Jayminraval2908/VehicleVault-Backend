@@ -13,9 +13,11 @@ app.use(cors({
     "https://vehicle-vault-frontend-lake.vercel.app  "
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
 
+app.options("*", cors());
 const adminRoutes = require("./src/routes/AdminRoute");
 app.use("/admin",adminRoutes)
 
