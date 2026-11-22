@@ -14,7 +14,7 @@ app.use(cors({
     "http://localhost:5173",
     "https://vehicle-vault-frontend-lake.vercel.app"
   ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [ "Content-Type",
     "Authorization",
     "Cache-Control",
@@ -58,11 +58,15 @@ app.use("/offer", offerRoutes);
 const contactRoutes = require("./src/routes/ContactRoute");
 app.use("/contact", contactRoutes);
 
-// ✅ DB Connection
-const DBConnection = require("./src/utills/DBConnection");
-DBConnection();
+// Health check
+app.get("/", (req, res) => res.json({ success: true, message: "API running" }));
 
-// ✅ Error Handler
+// 404
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: "Route not found" });
+});
+
+// Error handler
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   res.status(statusCode).json({
@@ -72,9 +76,16 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ✅ Start Server
+// Connect DB first, then start server
+const DBConnection = require("./src/utills/DBConnection");
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server is connected successfully on port ${PORT}`);
-});
+(async () => {
+  try {
+    await DBConnection();
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  } catch (err) {
+    console.error("Startup failed:", err.message);
+    process.exit(1);
+  }
+})();
